@@ -1,6 +1,6 @@
 provider "aws" {
-  region  = "${var.region}"
-  profile = "${var.profile}"
+  region  = var.region
+  profile = var.profile
 }
 
 data "aws_ami" "latest-ubuntu" {
@@ -23,7 +23,7 @@ data "aws_ami" "latest-ubuntu" {
 resource "aws_security_group" "vpnsecuritygroup" {
   name        = "Open VPN Security Group"
   description = "Allow http and https"
-  vpc_id      = "${data.aws_vpc.selected.id}"
+  vpc_id      = data.aws_vpc.selected.id
 
   ingress {
     from_port   = 22
@@ -70,51 +70,51 @@ resource "aws_security_group" "vpnsecuritygroup" {
 
 resource "aws_instance" "openvpnserver" {
   ami             = data.aws_ami.latest-ubuntu.id
-  instance_type   = "${var.instancetype}"
-  user_data       = "${data.template_file.userdata.rendered}"
-  key_name        = "${var.keyname}"
-  security_groups = ["${aws_security_group.vpnsecuritygroup.id}"]
-  subnet_id       = "${var.subnetid}"
+  instance_type   = var.instancetype
+  user_data       = data.template_file.userdata.rendered
+  key_name        = var.keyname
+  security_groups = [aws_security_group.vpnsecuritygroup.id]
+  subnet_id       = var.subnetid
 
   tags = {
-    Owner = "${var.owner}"
-    Name  = "${var.instancename}"
+    Owner = var.owner
+    Name  = var.instancename
   }
 }
 
 data "template_file" "userdata" {
-  template = "${file("userdata.sh")}"
+  template = file("userdata.sh")
 
   vars = {
-    key_country  = "${var.key_country}"
-    key_province = "${var.key_province}"
-    key_city     = "${var.key_city}"
-    key_org      = "${var.key_org}"
-    key_email    = "${var.key_email}"
-    key_ou       = "${var.key_ou}"
-    passwd       = "${var.passwd}"
-    domain       = "${var.domain}"
-    sslmail      = "${var.sslmail}"
-    subdomain    = "${var.subdomain}"
-    instancetype = "${var.instancetype}"
-    keyname      = "${var.keyname}"
-    adminurl     = "${var.domain}"
+    key_country  = var.key_country
+    key_province = var.key_province
+    key_city     = var.key_city
+    key_org      = var.key_org
+    key_email    = var.key_email
+    key_ou       = var.key_ou
+    passwd       = var.passwd
+    domain       = var.domain
+    sslmail      = var.sslmail
+    subdomain    = var.subdomain
+    instancetype = var.instancetype
+    keyname      = var.keyname
+    adminurl     = var.domain
   }
 }
 
 data "aws_vpc" "selected" {
-  id = "${var.vpc}"
+  id = var.vpc
 }
 
 data "aws_route53_zone" "hostedzone" {
-  name         = "${var.domain}"
+  name         = var.domain
   private_zone = false
 }
 
 resource "aws_route53_record" "www" {
-  zone_id = "${data.aws_route53_zone.hostedzone.id}"
-  name    = "${var.subdomain}.${data.aws_route53_zone.hostedzone.name}"
+  zone_id = data.aws_route53_zone.hostedzone.id
+  name    = var.subdomain.data.aws_route53_zone.hostedzone.name
   type    = "A"
   ttl     = "30"
-  records = ["${aws_instance.openvpnserver.public_ip}"]
+  records = [aws_instance.openvpnserver.public_ip]
 }
